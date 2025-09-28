@@ -218,19 +218,19 @@ def main():
                     error_message = 'Incorrect symbols: [' + '], ['.join(save_name_errors) + ']'
                     continue
                 save_name = save_name.replace(' ', '_')
+                dirname = SAVES_DIR + '\\' + save_name
                 if save_name in os.listdir(SAVES_DIR):
-                    error_message = 'This save is already exists'
-                    continue
-                else:
-                    print('Saving...')
-                    dirname = SAVES_DIR + '\\' + save_name
-                    target_containment = calc_folder_containment(CURRENT_SAVE)
-                    run_with_progress(
-                        lambda: shutil.copytree(CURRENT_SAVE, dirname),
-                        lambda: calc_folder_containment(dirname) / target_containment,
-                    )
-                    with open(dirname + '\\' + INFO_FILE_NAME, 'w', encoding='utf-8') as info_file:
-                        info_file.write(str(calc_folder_size(dirname)))
+                    if input('Overwrite? [y/N] >> ').strip().lower() != 'y':
+                        continue
+                    shutil.rmtree(dirname)
+                print('Saving...')
+                target_containment = calc_folder_containment(CURRENT_SAVE)
+                run_with_progress(
+                    lambda: shutil.copytree(CURRENT_SAVE, dirname),
+                    lambda: calc_folder_containment(dirname) / target_containment,
+                )
+                with open(dirname + '\\' + INFO_FILE_NAME, 'w', encoding='utf-8') as info_file:
+                    info_file.write(str(calc_folder_size(dirname)))
 
             elif command in ('l', 'd'):
                 if len(saves) == 0:
