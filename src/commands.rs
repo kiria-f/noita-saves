@@ -31,7 +31,8 @@ pub fn cmd_load(saves: &Vec<Save>, arg: &str) {
                 "...",
             ]
             .join(""),
-        );
+        )
+        .update_later();
         if let Err(err) = fs::remove_dir_all(&CONFIG.current_save_path) {
             ui::error(&format!("Failed to delete old save: {}", err));
             return;
