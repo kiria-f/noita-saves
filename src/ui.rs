@@ -5,8 +5,10 @@ use regex::Regex;
 use std::{
     io::{self, Write},
     sync::{LazyLock, Mutex},
+    time::Instant,
 };
 
+use crate::config::DEBUG;
 use crate::utils::{self, Save};
 
 struct Memo {
@@ -76,6 +78,80 @@ pub fn error(msg: &str) {
     let mut buf = style("Error:\n").red().to_string();
     buf.push_str(msg);
     writelnln_highlighted(Color::Red, &buf);
+}
+
+pub fn debug(msg: &str) {
+    if DEBUG {
+        let mut buf = style("Debug:\n").cyan().to_string();
+        buf.push_str(msg);
+        writelnln_highlighted(Color::Cyan, &buf);
+    }
+}
+
+pub struct ProgressBar {
+    target: usize,
+    title: Option<String>,
+    status: usize,
+    visible_status: u32,
+    bar_width: u32,
+    redrawn: u32,
+    elapsed: Instant,
+}
+
+impl ProgressBar {
+    pub fn new(target: usize, title: Option<&str>) -> Self {
+        let mut bar = Self {
+            target,
+            title: title.map(|t| t.to_string()),
+            status: 0,
+            visible_status: 0,
+            bar_width: 20,
+            redrawn: 0,
+            elapsed: Instant::now(),
+        };
+        bar.draw();
+        return bar;
+    }
+
+    pub fn update(&mut self, status: usize) {
+        self.status = status;
+        let vs = ((self.status as f32 / self.target as f32) * self.bar_width as f32) as u32;
+        if vs > self.visible_status {
+            self.visible_status = vs;
+            self.draw();
+        }
+    }
+
+    fn draw(&mut self) {
+        self.redrawn += 1;
+        let filled = self.visible_status;
+        let empty = self.bar_width - filled;
+
+        if empty > 0 {
+            let filled_bar = "█".repeat(filled as usize);
+            let empty_bar = "░".repeat(empty as usize);
+
+            self.visible_status = filled;
+            writeln(&format!(
+                "{}{}{}",
+                self.title.as_ref().map_or(String::new(), |t| format!("{}: ", t)),
+                filled_bar,
+                empty_bar
+            ))
+            .update_later();
+        } else {
+            writelnln(&format!(
+                "{}{}",
+                self.title.as_ref().map_or(String::new(), |t| format!("{}: ", t)),
+                "Done!",
+            ));
+            debug(&format!(
+                "Redrawn: {}\nElapsed: {:?}",
+                self.redrawn,
+                self.elapsed.elapsed()
+            ));
+        }
+    }
 }
 
 pub fn welcome() {
@@ -152,7 +228,7 @@ pub fn prompt() -> Vec<Save> {
                         "{}  {}  {}",
                         &main_info,
                         &additional_info,
-                        style("Current").dim()
+                        style("<Current>").dim()
                     ))
                     .green()
                     .bold()

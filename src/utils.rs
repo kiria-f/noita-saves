@@ -4,7 +4,7 @@ use std::{
     time::SystemTime,
 };
 
-use crate::config::CONFIG;
+use crate::{config::CONFIG, ui::ProgressBar};
 use walkdir::WalkDir;
 
 #[derive(serde::Deserialize, serde::Serialize, Debug, PartialEq)]
@@ -38,6 +38,27 @@ fn calc_dir_content(path: &Path) -> usize {
         .filter(|e| e.file_type().is_file())
         .filter(|e| e.file_name().to_string_lossy() != CONFIG.cache_file_name)
         .count()
+}
+
+pub fn copy_dir_with_progress(src: &Path, dst: &Path, progress_bar_title: Option<&str>) -> Result<(), std::io::Error> {
+    let mut bar = ProgressBar::new(WalkDir::new(src).into_iter().count(), progress_bar_title);
+    let mut progress = 0;
+    for entry in WalkDir::new(src) {
+        let entry = entry?;
+        let src_path = entry.path();
+        let dst_path = dst.join(src_path.strip_prefix(src).unwrap());
+
+        if entry.file_type().is_dir() {
+            fs::create_dir(&dst_path)?;
+        } else {
+            if entry.file_name().to_string_lossy() != CONFIG.cache_file_name {
+                fs::copy(src_path, &dst_path)?;
+            }
+        }
+        progress += 1;
+        bar.update(progress);
+    }
+    return Ok(());
 }
 
 fn get_dir_stat(path: &Path, use_cache: bool) -> Option<SaveStat> {
