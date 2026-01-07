@@ -158,7 +158,7 @@ def main():
         print(PREV_LINE, end='')
         for index, (save, creation_time) in enumerate(saves):
             is_equal_to_current = False
-            save_size = get_folder_size_from_info_or_recalc_new(SAVES_DIR + '\\' + save)
+            save_size = get_folder_size_from_info_cargo or_recalc_new(SAVES_DIR + '\\' + save)
             if save_size == current_save_size:
                 dir_cmp_result = dircmp(CURRENT_SAVE, SAVES_DIR + '\\' + save)
                 if len(dir_cmp_result.diff_files) == 0:

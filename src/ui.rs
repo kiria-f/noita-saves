@@ -11,24 +11,30 @@ use crate::utils::{self, Save};
 
 static TERM: LazyLock<Term> = LazyLock::new(|| Term::stdout());
 
-pub fn write(msg: &str) {
+fn write(msg: &str) {
     print!("{}", msg);
     io::stdout().flush().ok();
 }
 
 pub fn writeln(msg: &str) {
-    println!("{}", msg);
+    TERM.write_line(msg).ok();
 }
 
 pub fn ln() {
-    println!();
+    TERM.write_line("").ok();
+}
+
+pub fn updateln(msg: &str) {
+    TERM.clear_last_lines(1).ok();
+    writeln(msg);
 }
 
 pub fn writeln_highlighted(border_color: Color, msg: &str) {
     let border = format!("{} ", style("┃").fg(border_color));
     let replacement = format!("\n{border}");
-    write(&border);
-    writeln(&msg.replace("\n", &replacement));
+    let mut replaced = msg.replace("\n", &replacement);
+    replaced.insert_str(0, &border);
+    writeln(&replaced);
 }
 
 pub fn error(msg: &str) {
@@ -37,7 +43,6 @@ pub fn error(msg: &str) {
 }
 
 pub fn welcome() {
-    let quote_bar = style("┃").yellow();
     let gh_link = style("https://github.com/kiria-f/noita-saves").cyan();
 
     ln();
@@ -61,7 +66,7 @@ pub fn welcome() {
 
 pub fn prompt() -> Vec<Save> {
     writeln("\n\nSaves:");
-    write("Loading...");
+    writeln("Loading...");
 
     let current_save_mb = utils::get_current_save();
     if current_save_mb.is_none() {
@@ -70,9 +75,9 @@ pub fn prompt() -> Vec<Save> {
     let saves;
     if let Some(saves_mb) = utils::get_saves() {
         saves = saves_mb;
-        update("");
+        updateln("");
     } else {
-        update("");
+        updateln("");
         error("Cannot load saves");
         return Vec::new();
     }
@@ -92,10 +97,15 @@ pub fn prompt() -> Vec<Save> {
 
             if save_is_current {
                 writeln(
-                    &style(format!("{}  {}", &main_info, &additional_info))
-                        .green()
-                        .bold()
-                        .to_string(),
+                    &style(format!(
+                        "{}  {}  {}",
+                        &main_info,
+                        &additional_info,
+                        style("Current").dim()
+                    ))
+                    .green()
+                    .bold()
+                    .to_string(),
                 );
             } else {
                 writeln(&format!("{}  {}", &main_info, style(&additional_info).dim()));
@@ -111,9 +121,4 @@ pub fn prompt() -> Vec<Save> {
     write(re.replace_all(&boring_prompt, &replacement).as_ref());
 
     return saves;
-}
-
-pub fn update(msg: &str) {
-    TERM.clear_line().ok();
-    write(msg);
 }
