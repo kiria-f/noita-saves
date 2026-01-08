@@ -1,5 +1,4 @@
-use bytesize::ByteSize;
-use chrono::{DateTime, Duration, Local};
+use chrono::Duration;
 use console::{Color, Term, style};
 use regex::Regex;
 use std::{
@@ -9,7 +8,6 @@ use std::{
 };
 
 use crate::config::DEBUG;
-use crate::utils::{self, SaveInfo};
 
 struct Memo {
     lines_to_update: Option<usize>,
@@ -20,9 +18,12 @@ pub struct PostHandler {
 }
 
 impl PostHandler {
-    fn from_output(&mut self, output: &str) {
-        self.lines_printed = output.split('\n').count();
+    fn from_output(output: &str) -> Self {
+        PostHandler {
+            lines_printed: output.split('\n').count(),
+        }
     }
+
     pub fn update_later(&self) {
         MEMO.lock().unwrap().lines_to_update = Some(self.lines_printed);
     }
@@ -31,18 +32,7 @@ impl PostHandler {
 static TERM: LazyLock<Term> = LazyLock::new(|| Term::buffered_stdout());
 static MEMO: LazyLock<Mutex<Memo>> = LazyLock::new(|| Mutex::new(Memo { lines_to_update: None }));
 
-fn write(msg: &str) {
-    let mut memo = MEMO.lock().expect("Cannot access MEMO");
-    if let Some(l2u) = memo.lines_to_update {
-        TERM.clear_last_lines(l2u).ok();
-        TERM.flush().ok();
-        memo.lines_to_update = None;
-    }
-    print!("{}", msg);
-    io::stdout().flush().ok();
-}
-
-pub fn writeln(msg: &str) -> PostHandler {
+pub fn lnwrite(msg: &str) -> PostHandler {
     let mut memo = MEMO.lock().expect("Cannot access MEMO");
     if let Some(l2u) = memo.lines_to_update {
         TERM.clear_last_lines(l2u).ok();
@@ -52,42 +42,32 @@ pub fn writeln(msg: &str) -> PostHandler {
     TERM.write_line(msg).ok();
     TERM.flush().ok();
 
-    return PostHandler {
-        lines_printed: msg.split('\n').count(),
-    };
+    return PostHandler::from_output(msg);
 }
 
-pub fn writelnln(msg: &str) -> PostHandler {
-    let mut post_handler = writeln(msg);
-    TERM.write_line("").ok();
-    TERM.flush().ok();
-    post_handler.lines_printed += 1;
-    return post_handler;
+pub fn lnlnwrite(msg: &str) -> PostHandler {
+    return lnwrite(&("\n".to_string() + msg));
 }
 
-pub fn ln() {
-    writeln("");
-}
-
-pub fn writelnln_highlighted(border_color: Color, msg: &str) -> PostHandler {
+pub fn lnlnwrite_highlighted(border_color: Color, msg: &str) -> PostHandler {
     let border = format!("{} ", style("┃").fg(border_color));
     let replacement = format!("\n{border}");
     let mut replaced = msg.replace("\n", &replacement);
     replaced.insert_str(0, &border);
-    return writelnln(&replaced);
+    return lnlnwrite(&replaced);
 }
 
 pub fn error(msg: &str) {
     let mut buf = style("Error:\n").red().to_string();
     buf.push_str(msg);
-    writelnln_highlighted(Color::Red, &buf);
+    lnlnwrite_highlighted(Color::Red, &buf);
 }
 
 pub fn debug(msg: &str) {
     if DEBUG {
         let mut buf = style("Debug:\n").cyan().to_string();
         buf.push_str(msg);
-        writelnln_highlighted(Color::Cyan, &buf);
+        lnlnwrite_highlighted(Color::Cyan, &buf);
     }
 }
 
@@ -95,22 +75,30 @@ pub fn main_prompt(actions: &[&str]) -> String {
     Regex::new(r"\[(.)\]")
         .unwrap()
         .replace_all(
-            &("\n".to_string()
-                + &actions
-                    .iter()
-                    .map(|&s| ["[", &s[..1].to_uppercase(), "]", &s[1..]].join(""))
-                    .collect::<Vec<_>>()
-                    .join(" | ")),
+            &(actions
+                .iter()
+                .map(|&s| ["[", &s[..1].to_uppercase(), "]", &s[1..]].join(""))
+                .collect::<Vec<_>>()
+                .join(" | ")),
             format!("{}{}{}", style("[").dim(), "$1", style("]").dim()),
         )
         .to_string()
 }
 
-pub fn ask(prompt: &str) -> String {
+pub fn ask(prompt: &str) -> Option<String> {
+    let mut memo = MEMO.lock().expect("Cannot access MEMO");
+    if let Some(l2u) = memo.lines_to_update {
+        TERM.clear_last_lines(l2u).ok();
+        TERM.flush().ok();
+        memo.lines_to_update = None;
+    }
+
     let mut buf = String::new();
-    write(&(prompt.to_string() + &style(" ❯ ").cyan().to_string()));
+    print!("\n{}{}", prompt, style(" ❯ ").cyan());
+    io::stdout().flush().ok();
     std::io::stdin().read_line(&mut buf).unwrap();
-    return buf.trim().to_string();
+    let response = buf.trim().to_string();
+    return Some(response).filter(|s| !s.is_empty());
 }
 
 pub struct ProgressBar {
@@ -160,7 +148,7 @@ impl ProgressBar {
             let empty_bar = "░".repeat(empty as usize);
 
             self.visible_status = filled;
-            writeln(&format!(
+            lnlnwrite(&format!(
                 "{}{}{}",
                 self.title.as_ref().map_or(String::new(), |t| format!("{}: ", t)),
                 filled_bar,
@@ -168,7 +156,7 @@ impl ProgressBar {
             ))
             .update_later();
         } else {
-            writelnln(&format!(
+            lnlnwrite(&format!(
                 "{}{}",
                 self.title.as_ref().map_or(String::new(), |t| format!("{}: ", t)),
                 "Done!",
@@ -185,8 +173,7 @@ impl ProgressBar {
 pub fn welcome() {
     let gh_link = style("https://github.com/kiria-f/noita-saves").cyan();
 
-    ln();
-    writelnln_highlighted(
+    lnlnwrite_highlighted(
         Color::Green,
         &[
             &style("Welcome to NoitaSaves!").bold().green().to_string(),

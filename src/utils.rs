@@ -1,4 +1,5 @@
 use std::{
+    collections::HashSet,
     fs, io,
     path::{Path, PathBuf},
     time::SystemTime,
@@ -157,6 +158,31 @@ pub fn copy_dir_with_progress(
     }
     if write_dst_cache {
         stat.write_cache(dst).ok();
+    }
+    return Ok(());
+}
+
+pub fn delete_dirs_with_progress(dirs: &HashSet<&Path>, progress_bar_title: Option<&str>) -> Result<(), io::Error> {
+    let total_files_count = dirs
+        .into_iter()
+        .map(|p| SaveStat::read_cache_or_scan(p.as_ref()).count)
+        .sum();
+    let mut bar = ProgressBar::new(total_files_count, progress_bar_title, 60);
+    let mut progress = 0;
+    for dir in dirs {
+        for entry in WalkDir::new(dir).contents_first(true) {
+            let entry = entry?;
+            let path = entry.path();
+            if entry.file_type().is_dir() {
+                fs::remove_dir(&path)?;
+            } else {
+                fs::remove_file(&path)?;
+            }
+            if entry.file_name().to_string_lossy() != CONFIG.cache_file_name {
+                progress += 1;
+                bar.update(progress);
+            }
+        }
     }
     return Ok(());
 }

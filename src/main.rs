@@ -14,8 +14,8 @@ fn main() {
     ui::welcome();
     loop {
         // Tell user we are already working at their request )
-        ui::writeln("\nSaves:");
-        ui::writeln("Loading...").update_later();
+        ui::lnlnwrite("\nSaves:");
+        ui::lnwrite("Loading...").update_later();
 
         // Get current progress and available saves
         let current_save_mb = SaveInfo::current();
@@ -33,14 +33,14 @@ fn main() {
             if !saves.is_empty() {
                 let i_width = saves.len().to_string().len();
                 for (i, save) in saves.iter().enumerate() {
-                    ui::writeln(&format!(
+                    ui::lnwrite(&format!(
                         "{:i_width$} ❯ {}",
                         i + 1,
                         save.to_string(current_save_mb.as_ref())
                     ));
                 }
             } else {
-                ui::writelnln(&style("< Nothing >").dim().to_string());
+                ui::lnlnwrite(&style("< Nothing >").dim().to_string());
             }
         } else {
             ui::error("Cannot load saves");
@@ -48,11 +48,13 @@ fn main() {
         }
 
         // Ask user for action
-        let response = ui::ask(&ui::main_prompt(&actions));
-        if response.is_empty() {
+        let response_mb = ui::ask(&ui::main_prompt(&actions));
+        let response;
+        if let Some(r) = response_mb {
+            response = r;
+        } else {
             continue;
         }
-        ui::ln();
 
         // Parse user input
         let (cmd_name_or_alias, arg) = if let Some(splitted) = response.split_once(" ") {
@@ -67,7 +69,7 @@ fn main() {
         } else if let Some(cmd_name) = CMD_SHORTCUTS.get(cmd_name_or_alias) {
             CMD_MAP.get(cmd_name).unwrap()(saves_mb.as_ref(), arg);
         } else {
-            commands::not_found(cmd_name_or_alias);
+            commands::cmd_not_found(cmd_name_or_alias);
         }
 
         // Exit if user wants to quit
