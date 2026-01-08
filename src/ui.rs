@@ -1,5 +1,5 @@
 use bytesize::ByteSize;
-use chrono::{DateTime, Local};
+use chrono::{DateTime, Duration, Local};
 use console::{Color, Term, style};
 use regex::Regex;
 use std::{
@@ -9,7 +9,7 @@ use std::{
 };
 
 use crate::config::DEBUG;
-use crate::utils::{self, Save};
+use crate::utils::{self, SaveInfo};
 
 struct Memo {
     lines_to_update: Option<usize>,
@@ -28,15 +28,16 @@ impl PostHandler {
     }
 }
 
-static TERM: LazyLock<Term> = LazyLock::new(|| Term::stdout());
+static TERM: LazyLock<Term> = LazyLock::new(|| Term::buffered_stdout());
 static MEMO: LazyLock<Mutex<Memo>> = LazyLock::new(|| Mutex::new(Memo { lines_to_update: None }));
 
 fn write(msg: &str) {
     let mut memo = MEMO.lock().expect("Cannot access MEMO");
     if let Some(l2u) = memo.lines_to_update {
         TERM.clear_last_lines(l2u).ok();
+        TERM.flush().ok();
+        memo.lines_to_update = None;
     }
-    memo.lines_to_update = None;
     print!("{}", msg);
     io::stdout().flush().ok();
 }
@@ -45,10 +46,11 @@ pub fn writeln(msg: &str) -> PostHandler {
     let mut memo = MEMO.lock().expect("Cannot access MEMO");
     if let Some(l2u) = memo.lines_to_update {
         TERM.clear_last_lines(l2u).ok();
+        memo.lines_to_update = None;
     }
-    memo.lines_to_update = None;
 
     TERM.write_line(msg).ok();
+    TERM.flush().ok();
 
     return PostHandler {
         lines_printed: msg.split('\n').count(),
@@ -58,6 +60,7 @@ pub fn writeln(msg: &str) -> PostHandler {
 pub fn writelnln(msg: &str) -> PostHandler {
     let mut post_handler = writeln(msg);
     TERM.write_line("").ok();
+    TERM.flush().ok();
     post_handler.lines_printed += 1;
     return post_handler;
 }
@@ -88,26 +91,50 @@ pub fn debug(msg: &str) {
     }
 }
 
+pub fn main_prompt(actions: &[&str]) -> String {
+    Regex::new(r"\[(.)\]")
+        .unwrap()
+        .replace_all(
+            &("\n".to_string()
+                + &actions
+                    .iter()
+                    .map(|&s| ["[", &s[..1].to_uppercase(), "]", &s[1..]].join(""))
+                    .collect::<Vec<_>>()
+                    .join(" | ")),
+            format!("{}{}{}", style("[").dim(), "$1", style("]").dim()),
+        )
+        .to_string()
+}
+
+pub fn ask(prompt: &str) -> String {
+    let mut buf = String::new();
+    write(&(prompt.to_string() + &style(" ❯ ").cyan().to_string()));
+    std::io::stdin().read_line(&mut buf).unwrap();
+    return buf.trim().to_string();
+}
+
 pub struct ProgressBar {
     target: usize,
     title: Option<String>,
     status: usize,
     visible_status: u32,
     bar_width: u32,
+    min_elapsed: Duration,
     redrawn: u32,
-    elapsed: Instant,
+    time_point: Instant,
 }
 
 impl ProgressBar {
-    pub fn new(target: usize, title: Option<&str>) -> Self {
+    pub fn new(target: usize, title: Option<&str>, framerate: u64) -> Self {
         let mut bar = Self {
             target,
             title: title.map(|t| t.to_string()),
             status: 0,
             visible_status: 0,
             bar_width: 20,
+            min_elapsed: Duration::milliseconds(1000 / framerate as i64),
             redrawn: 0,
-            elapsed: Instant::now(),
+            time_point: Instant::now(),
         };
         bar.draw();
         return bar;
@@ -116,7 +143,8 @@ impl ProgressBar {
     pub fn update(&mut self, status: usize) {
         self.status = status;
         let vs = ((self.status as f32 / self.target as f32) * self.bar_width as f32) as u32;
-        if vs > self.visible_status {
+        if vs > self.visible_status && self.time_point.elapsed() >= self.min_elapsed.to_std().unwrap() {
+            self.time_point = Instant::now();
             self.visible_status = vs;
             self.draw();
         }
@@ -148,7 +176,7 @@ impl ProgressBar {
             debug(&format!(
                 "Redrawn: {}\nElapsed: {:?}",
                 self.redrawn,
-                self.elapsed.elapsed()
+                self.time_point.elapsed()
             ));
         }
     }
@@ -174,74 +202,4 @@ pub fn welcome() {
         ]
         .join("\n"),
     );
-}
-
-pub fn prompt() -> Vec<Save> {
-    fn construct_prompt(actions: &[&str]) -> String {
-        Regex::new(r"\[(.)\]")
-            .unwrap()
-            .replace_all(
-                &("\n".to_string()
-                    + &actions
-                        .iter()
-                        .map(|&s| ["[", &s[..1].to_uppercase(), "]", &s[1..]].join(""))
-                        .collect::<Vec<_>>()
-                        .join(" | ")
-                    + &style(" ❯ ").cyan().to_string()),
-                format!("{}{}{}", style("[").dim(), "$1", style("]").dim()),
-            )
-            .to_string()
-    }
-
-    writeln("\nSaves:");
-    writeln("Loading...").update_later();
-
-    let current_save_mb = utils::get_current_save();
-    if current_save_mb.is_none() {
-        error("Cannot find current Noita progress");
-    }
-    let saves;
-    if let Some(saves_mb) = utils::get_saves() {
-        saves = saves_mb;
-    } else {
-        error("Cannot load saves");
-        write(&construct_prompt(&["play", "quit"]));
-        return Vec::new();
-    }
-
-    if saves.len() > 0 {
-        let i_width = saves.len().to_string().len();
-        for i in 0..saves.len() {
-            let save = &saves[i];
-            let save_is_current = matches!(&current_save_mb, Some(current_save) if current_save.stat == save.stat);
-
-            let main_info = format!("#{:i_width$} ❯ {}", i + 1, save.name);
-            let additional_info = format!(
-                "[{} | {}]",
-                DateTime::<Local>::from(save.ctime).format("%b %-d %H:%M:%S"),
-                ByteSize::b(save.stat.size)
-            );
-
-            if save_is_current {
-                writeln(
-                    &style(format!(
-                        "{}  {}  {}",
-                        &main_info,
-                        &additional_info,
-                        style("<Current>").dim()
-                    ))
-                    .green()
-                    .bold()
-                    .to_string(),
-                );
-            } else {
-                writeln(&format!("{}  {}", &main_info, style(&additional_info).dim()));
-            }
-        }
-    } else {
-        writeln("< Nothing >");
-    }
-
-    write(&construct_prompt(&["save", "load", "play", "delete", "quit"]));
-    return saves;
 }
