@@ -27,8 +27,11 @@ jobs:
       - name: Build
         run: cargo build --release
 
+      - name: Rename executable
+        run: mv target/release/noita-saves.exe target/release/NoitaSaves.exe
+
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
-          files: target/release/noita-saves.exe
+          files: target/release/NoitaSaves.exe
           token: ${{ secrets.RELEASE_GITHUB_TOKEN }}
