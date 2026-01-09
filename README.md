@@ -1,95 +1,93 @@
 # NoitaSaves
-### - Now you have [Save] and [Load] buttons for Noita! :D
+
+### 💾 2023 ❯ Now you have \[Save\] and \[Load\] buttons for Noita! :D
+
+### 🚀 2026 ❯ Rewritten in Rust, blazingly fast!
+
 ![NoitaSaves](https://user-images.githubusercontent.com/57474004/236513513-8b9a8457-9662-4c75-91e8-a416d5a7a8a2.png)
 
 ---
+
 ## Main functions:
+
 ### To make a save:
-- Quit the game
-- Open NoitaSaves and enter "S" (Save)
-- Enter the save's name
-- Done! Now your save should be in the save list and will be available until you delete it
+
+1. Save and quit the game
+2. Open NoitaSaves
+3. Enter `s <save name>`
 
 ### To load a save:
-- Quit the game
-- __Wait for finish of Steam sync__ (if it's enabled)
-- Open NoitaSaves, enter "L" (Load)
-- Choose the save's index ("L" for last)
+
+1. Quit the game
+2. **Wait for finish of Steam sync**, if it's enabled
+3. Open NoitaSaves
+4. Enter `l <save index>` or just `l` to choose one
 
 ### To delete a save:
-- Open NoitaSaves, enter "D" (Delete)
-- Choose the save's index ("A" for all, "{X} - {Y}" for interval)
 
-> You can input commands in lower-case
+1. Open NoitaSaves
+2. Enter `d <save index/interval>`
 
-> You can input a full command one-line, e.g. "l 4", "d a", "s my save"
-
-> You can stick parameters to load and delete commands, e.g. "ll", "d1-5"
+Correct interval examples:
+- `4..8` — delete saves from 4 to 8
+- `..8` — delete saves from 1 to 8
+- `4..` — delete saves from 4 to the last one
+- `..` — delete all saves
 
 ## Also:
+
 ### You can launch Noita directly from NoitaSaves
-Just enter "P" (Play)
 
-### You can create a shortcut for NoitaSaves on your desktop and in the Start menu
-(These commands are not displayed in the application because they are rarely used)
+Just hit `p`
 
-| Command | Action                                                |
-|---------|-------------------------------------------------------|
-| SDA     | **A**dd/update the **S**hortcut on the **D**esktop    |
-| SMA     | **A**dd/update the **S**hortcut in the Start **M**enu |
-| SDR     | **R**emove the **S**hortcut from the **D**esktop      |
-| SMR     | **R**emove the **S**hortcut from the Start **M**enu   |
+### You can manage NoitaSaves shortcuts on your desktop and in the Start menu
 
-> Python 3.11 or newer is required  
-> 
-> It also may work with other versions  
-> since 3.9, but some features may be unabled  
-> 
-> You can download Python from the official site: www.python.org
+| Command | Action                                           |
+|---------|--------------------------------------------------|
+| x cd    | **C**reate/update the shortcut on **D**esktop    |
+| x cs    | **C**reate/update the shortcut in **S**tart Menu |
+| x rd    | **D**elete the shortcut from **D**esktop         |
+| x rs    | **D**elete the shortcut from **S**tart Menu      |
 
 ---
+
 ## Основные функции:
+
 ### Чтобы создать сейв:
-- Выйдите из игры с сохранением
-- Откройте NoitaSaves, введите "S" (Save)
-- Введите название сейва
-- Готово! Сейв должен появиться в списке и теперь он всегда доступен, пока вы его не удалите
+
+- Выйди из игры с сохранением
+- Открой NoitaSaves
+- Введи `s <имя сейва>`
 
 ### Чтобы загрузить сейв:
-- Выйдите из игры
-- __Дождитесь окончания синхронизации Steam__ (если она включена)
-- Откройте NoitaSaves, введите "L" (Load)
-- Выберите номер сохранения
+
+- Выйди из игры
+- **Дождись окончания синхронизации Steam**, если она включена
+- Открой NoitaSaves
+- Введи `l <индекс сейва>` или просто `l`, чтобы выбрать последний
 
 ### Чтобы удалить сейв:
-- Откройте NoitaSaves, введите "D" (Delete)
-- Выберите номер сохранения ("A" - удалить всё, "{X} - {Y}" - выбрать интервал)
 
-> Команды можно вводить в нижнем регистре
+- Открой NoitaSaves
+- Введи `d <индекс или диапазон сейвов>`
 
-> Можно вводить полную команду в одну строку, например "l 4", "d a", "s my save"
-
-> Параметр и команду удаления или загрузки можно писать слитно, например "ll", "d1-5"
+Примеры корректных диапазонов:
+- `4..8` — удалить сейвы с 4 по 8
+- `..8` — удалить сейвы с 1 по 8
+- `4..` — удалить сейвы с 4 по последний
+- `..` — удалить все сейвы
 
 ## Также:
+
 ### Можно запустить Noita прямо из NoitaSaves
-Просто введите "P" (Play)
 
-### Можно сделать ярлык для NoitaSaves на рабочем столе и в меню Пуск
-(Эти команды не отображаются в самом приложении, так как редко используются)
+Просто введи `p`
 
-| Команда | Действие                                |
-|---------|-----------------------------------------|
-| SDA     | Создать/обновить ярлык на рабочем столе |
-| SMA     | Создать/обновить ярлык в меню Пуск      |
-| SDR     | Убрать ярлык с рабочего стола           |
-| SMR     | Убрать ярлык из меню Пуск               |
+### Можно управлять ярлыком NoitaSaves на рабочем столе и в меню Пуск
 
-> Для запуска требуется Python 3.11 или новее 
-> 
-> Скрипт так же должен работать на других версиях,  
-> начиная с 3.9, но с ограничением по функциональности  
-> 
-> Вы можете загрузить Python c официального сайта: www.python.org
-
-      
+| Команда | Действие                                         |
+|---------|--------------------------------------------------|
+| x cd    | Создать/обновить ярлык на Рабочем столе          |
+| x cs    | Создать/обновить ярлык в меню Пуск               |
+| x rd    | Удалить ярлык с Рабочего стола                   |
+| x rs    | Удалить ярлык из меню Пуск                       |

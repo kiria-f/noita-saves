@@ -178,18 +178,20 @@ pub fn welcome() {
 
     lnlnwrite_highlighted(
         Color::Green,
-        &[
-            &style("Welcome to NoitaSaves!").bold().green().to_string(),
-            "",
-            &format!("{}", style("To make a save, you should first quit the game").bold()),
-            &format!("{}", style("You also need to close Noita before loading a save").bold()),
-            "Turn off Steam sync in the game settings (if it's enabled)",
-            "  Otherwise, do not load a save during Steam sync, it may corrupt the current game state",
-            "  If the selected save has not loaded, just load it one more time",
-            "  (It may happen due to steam sync)",
-            "You can also create a shortcut for NoitaSaves on your start menu or desktop",
-            &format!("(Check GitHub repo for more info: {gh_link})"),
-        ]
-        .join("\n"),
+        &dim_squares(
+            [
+                &style("Welcome to NoitaSaves!").bold().green().to_string(),
+                "",
+                &format!("{}", style("To make a save, you should first quit the game").bold()),
+                &format!("{}", style("You also need to close Noita before loading a save").bold()),
+                "Turn off Steam sync in the game settings (if it's enabled)",
+                "  Otherwise, do not load a save during Steam sync, it may corrupt the current game state",
+                "  If the selected save has not loaded, just load it one more time",
+                "  (It may happen due to steam sync)",
+                "You can also manage NoitaSaves shortcuts with [x] command",
+                &format!("(Check GitHub repo for more info: {gh_link})"),
+            ]
+            .join("\n"),
+        ),
     );
 }

@@ -58,22 +58,22 @@ fn main() {
 
         // Parse user input
         let (cmd_name_or_alias, arg) = if let Some(splitted) = response.split_once(" ") {
-            (splitted.0.trim(), Some(splitted.1.trim()))
+            (splitted.0.to_lowercase(), Some(splitted.1.trim()))
         } else {
-            (response.as_str(), None)
+            (response.to_lowercase(), None)
         };
 
         // Call command
-        if let Some(cmd) = CMD_MAP.get(cmd_name_or_alias) {
+        if let Some(cmd) = CMD_MAP.get(cmd_name_or_alias.as_str()) {
             cmd(saves_mb.as_ref(), arg);
-        } else if let Some(cmd_name) = CMD_SHORTCUTS.get(cmd_name_or_alias) {
+        } else if let Some(cmd_name) = CMD_SHORTCUTS.get(cmd_name_or_alias.as_str()) {
             CMD_MAP.get(cmd_name).unwrap()(saves_mb.as_ref(), arg);
         } else {
-            commands::cmd_not_found(cmd_name_or_alias);
+            commands::cmd_not_found(cmd_name_or_alias.as_str());
         }
 
         // Exit if user wants to quit
-        if ["q", "quit"].contains(&cmd_name_or_alias) {
+        if ["q", "quit"].contains(&cmd_name_or_alias.as_str()) {
             break;
         }
     }

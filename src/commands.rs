@@ -224,7 +224,7 @@ fn cmd_x(_saves: Option<&Vec<SaveInfo>>, arg_mb: Option<&str>) -> Option<()> {
                 "
                     |There is 4 options to control shortcuts:
                     |cd ❯ [C]create on [D]esktop
-                    |cs ❯ [C]reate on [S]tart Menu
+                    |cs ❯ [C]reate in [S]tart Menu
                     |rd ❯ [R]emove from [D]esktop
                     |rs ❯ [R]emove from [S]tart Menu
                 "
@@ -232,7 +232,7 @@ fn cmd_x(_saves: Option<&Vec<SaveInfo>>, arg_mb: Option<&str>) -> Option<()> {
             )
             .as_str(),
         );
-        return ui::ask("Action");
+        return ui::ask("Action").map(|s| s.to_lowercase());
     })?;
 
     let (action, location) = match arg.as_str() {
