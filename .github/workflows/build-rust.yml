@@ -1,0 +1,21 @@
+name: Build Rust
+
+on:
+  push:
+    branches: [ "master" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build
+      run: cargo build --release
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v6.0.0
+      with:
+        name: NoitaSaves.exe
+        path: target/release/noita-saves.exe
