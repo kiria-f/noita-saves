@@ -12,22 +12,23 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cargo/bin/
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-          target/
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-    - name: Build
-      run: cargo build --release
+      - name: Build
+        run: cargo build --release
 
-    - name: Release
-      uses: softprops/action-gh-release@v2
-      with:
-        files: target/release/noita-saves.exe
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: target/release/noita-saves.exe
+          token: ${{ secrets.RELEASE_GITHUB_TOKEN }}
