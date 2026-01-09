@@ -3,8 +3,8 @@ use lnks::Shortcut;
 use trim_margin::MarginTrimmable;
 
 use crate::{
-    config::CONFIG,
-    ui::{self, dim_squares, lnlnwrite},
+    config::{CONFIG, DEBUG},
+    ui,
     utils::{self, SaveInfo},
 };
 use std::{
@@ -220,7 +220,7 @@ enum XLocation {
 fn cmd_x(_saves: Option<&Vec<SaveInfo>>, arg_mb: Option<&str>) -> Option<()> {
     let arg = arg_mb.map(|s| s.to_string()).or_else(|| {
         ui::lnlnwrite(
-            dim_squares(
+            ui::dim_squares(
                 "
                     |There is 4 options to control shortcuts:
                     |cd ❯ [C]create on [D]esktop
@@ -272,7 +272,7 @@ fn cmd_x(_saves: Option<&Vec<SaveInfo>>, arg_mb: Option<&str>) -> Option<()> {
         XAction::Remove => fs::remove_file(shortcut_path).ok()?,
     }
 
-    lnlnwrite("Done!");
+    ui::lnlnwrite("Done!");
     return Some(());
 }
 
@@ -282,18 +282,18 @@ pub fn cmd_not_found(cmd: &str) {
 
 pub static CMD_MAP: LazyLock<HashMap<&str, fn(Option<&Vec<SaveInfo>>, Option<&str>) -> Option<()>>> =
     LazyLock::new(|| {
-        HashMap::from([
-            (
-                "test",
-                cmd_test as fn(Option<&Vec<SaveInfo>>, Option<&str>) -> Option<()>,
-            ),
+        let mut map = HashMap::from([
+            ("x", cmd_x as fn(Option<&Vec<SaveInfo>>, Option<&str>) -> Option<()>),
             ("save", cmd_save),
             ("load", cmd_load),
             ("delete", cmd_delete),
             ("play", cmd_play),
             ("quit", cmd_quit),
-            ("x", cmd_x),
-        ])
+        ]);
+        if DEBUG {
+            map.insert("test", cmd_test);
+        }
+        return map;
     });
 
 pub static CMD_SHORTCUTS: LazyLock<HashMap<&str, &str>> =

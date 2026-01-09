@@ -1,6 +1,6 @@
 use std::{env, path::PathBuf, sync::LazyLock};
 
-use crate::ui::{debug, error};
+use crate::ui;
 
 #[derive(Debug)]
 pub struct Config {
@@ -18,18 +18,18 @@ pub static CONFIG: LazyLock<Config> = LazyLock::new(|| {
         if let Ok(appdata) = env::var("APPDATA") {
             common_location = PathBuf::from(appdata.replace("Roaming", "LocalLow"));
         } else {
-            error("Failed to get APPDATA environment variable");
+            ui::error("Failed to get APPDATA environment variable");
             panic!();
         }
     } else {
         if let Ok(home) = env::var("USERPROFILE") {
             common_location = PathBuf::from(home).join("tmp").join("noita-saves");
         } else {
-            error("Failed to get HOME environment variable");
+            ui::error("Failed to get HOME environment variable");
             panic!();
         }
     }
-    debug(&format!("Common location: {}", common_location.display()));
+    ui::debug(&format!("Common location: {}", common_location.display()));
     return Config {
         cache_file_name: String::from(".noita_saves_cache.json"),
         saves_dir_path: common_location.join("Nolla_Games_Noita_Saves"),
