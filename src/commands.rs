@@ -1,13 +1,16 @@
 use console::style;
+use lnks::Shortcut;
+use trim_margin::MarginTrimmable;
 
 use crate::{
     config::CONFIG,
-    ui::{self, lnlnwrite},
+    ui::{self, dim_squares, lnlnwrite},
     utils::{self, SaveInfo},
 };
 use std::{
     collections::{HashMap, HashSet},
-    fs,
+    env, fs,
+    path::PathBuf,
     sync::LazyLock,
 };
 
@@ -141,7 +144,7 @@ fn interactive_get_save_name(arg: Option<&str>) -> Option<String> {
 // Commands
 
 fn cmd_test(_saves: Option<&Vec<SaveInfo>>, _arg: Option<&str>) -> Option<()> {
-    Some(())
+    return Some(());
 }
 
 fn cmd_save(saves_mb: Option<&Vec<SaveInfo>>, arg: Option<&str>) -> Option<()> {
@@ -185,7 +188,6 @@ fn cmd_delete(saves_mb: Option<&Vec<SaveInfo>>, arg: Option<&str>) -> Option<()>
     let index = interactive_get_slice(saves, arg)?;
     let saves = interactive_get_saves_by_slice(saves, index)?;
 
-    // Delete save
     if let Err(err) =
         utils::delete_dirs_with_progress(&saves.iter().map(|s| s.path.as_path()).collect(), Some("Deleting save"))
     {
@@ -196,12 +198,81 @@ fn cmd_delete(saves_mb: Option<&Vec<SaveInfo>>, arg: Option<&str>) -> Option<()>
 }
 
 fn cmd_play(_saves_mb: Option<&Vec<SaveInfo>>, _arg: Option<&str>) -> Option<()> {
-    lnlnwrite("Launching Noita...").update_later();
+    ui::lnlnwrite("Launching Noita...").update_later();
     open::that("steam://rungameid/881100").ok()
 }
 
 fn cmd_quit(_saves: Option<&Vec<SaveInfo>>, _arg: Option<&str>) -> Option<()> {
     ui::lnlnwrite("Thx for using NoitaSaves! Have a nice day!\n");
+    return Some(());
+}
+
+enum XAction {
+    Create,
+    Remove,
+}
+
+enum XLocation {
+    Desktop,
+    StartMenu,
+}
+
+fn cmd_x(_saves: Option<&Vec<SaveInfo>>, arg_mb: Option<&str>) -> Option<()> {
+    let arg = arg_mb.map(|s| s.to_string()).or_else(|| {
+        ui::lnlnwrite(
+            dim_squares(
+                "
+                    |There is 4 options to control shortcuts:
+                    |cd ❯ [C]create on [D]esktop
+                    |cs ❯ [C]reate on [S]tart Menu
+                    |rd ❯ [R]emove from [D]esktop
+                    |rs ❯ [R]emove from [S]tart Menu
+                "
+                .trim_margin()?,
+            )
+            .as_str(),
+        );
+        return ui::ask("Action");
+    })?;
+
+    let (action, location) = match arg.as_str() {
+        "cd" => (XAction::Create, XLocation::Desktop),
+        "cs" => (XAction::Create, XLocation::StartMenu),
+        "rd" => (XAction::Remove, XLocation::Desktop),
+        "rs" => (XAction::Remove, XLocation::StartMenu),
+        _ => {
+            ui::error(&format!("Invalid mode: {}", arg));
+            return None;
+        }
+    };
+
+    let shortcut_path = match location {
+        XLocation::Desktop => {
+            let home = env::var("USERPROFILE").ok()?;
+            PathBuf::from(home).join("Desktop").join("NoitaSaves.lnk")
+        }
+        XLocation::StartMenu => {
+            let appdata = env::var("APPDATA").ok()?;
+            PathBuf::from(appdata)
+                .join("Microsoft")
+                .join("Windows")
+                .join("Start Menu")
+                .join("Programs")
+                .join("NoitaSaves.lnk")
+        }
+    };
+
+    let exe_path = env::current_exe().ok()?;
+    let shortcut = Shortcut::new(exe_path);
+
+    match action {
+        XAction::Create => {
+            shortcut.save(shortcut_path).ok()?;
+        }
+        XAction::Remove => fs::remove_file(shortcut_path).ok()?,
+    }
+
+    lnlnwrite("Done!");
     return Some(());
 }
 
@@ -221,6 +292,7 @@ pub static CMD_MAP: LazyLock<HashMap<&str, fn(Option<&Vec<SaveInfo>>, Option<&st
             ("delete", cmd_delete),
             ("play", cmd_play),
             ("quit", cmd_quit),
+            ("x", cmd_x),
         ])
     });
 

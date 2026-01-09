@@ -22,7 +22,7 @@ pub static CONFIG: LazyLock<Config> = LazyLock::new(|| {
             panic!();
         }
     } else {
-        if let Ok(home) = env::var("HOME").or_else(|_| env::var("HOMEPATH")) {
+        if let Ok(home) = env::var("USERPROFILE") {
             common_location = PathBuf::from(home).join("tmp").join("noita-saves");
         } else {
             error("Failed to get HOME environment variable");

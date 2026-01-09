@@ -71,18 +71,21 @@ pub fn debug(msg: &str) {
     }
 }
 
-pub fn main_prompt(actions: &[&str]) -> String {
+pub fn dim_squares(text: String) -> String {
     Regex::new(r"\[(.)\]")
         .unwrap()
-        .replace_all(
-            &(actions
-                .iter()
-                .map(|&s| ["[", &s[..1].to_uppercase(), "]", &s[1..]].join(""))
-                .collect::<Vec<_>>()
-                .join(" | ")),
-            format!("{}{}{}", style("[").dim(), "$1", style("]").dim()),
-        )
+        .replace_all(&text, format!("{}{}{}", style("[").dim(), "$1", style("]").dim()))
         .to_string()
+}
+
+pub fn main_prompt(actions: &[&str]) -> String {
+    dim_squares(
+        actions
+            .iter()
+            .map(|&s| ["[", &s[..1].to_uppercase(), "]", &s[1..]].join(""))
+            .collect::<Vec<_>>()
+            .join(" | "),
+    )
 }
 
 pub fn ask(prompt: &str) -> Option<String> {
